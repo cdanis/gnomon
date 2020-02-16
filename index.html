@@ -1,6 +1,9 @@
-<html>
+<html height="100%">
     <head>
         <title>SRE team</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, height=device-height">
+        <meta charset="utf-8">
+
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
         integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
         crossorigin=""/>
@@ -16,9 +19,39 @@
                 visibility: hidden;
             }
         </style>
+        <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+        <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <script src="https://underscorejs.org/underscore-min.js"></script>
+        <script>
+            // TODO: move data into separate file
+            // TODO: figure out automatic updates (script to poll gcal api?)
+            // TODO: probably make each person into an object, with 'tz' and maybe also 'subteam' attributes (for filtering by subteam w/ checkboxes)
+            const tzPeople = {
+                "America/Los_Angeles": ["walterw", "brian", "olivers"],
+                "America/Chicago": ["liam", "charlie"],
+                "America/New_York": ["chrisd", "bobby", "__frank__"],
+                "Europe/Madrid": ["miro", "lucasl", "cosimo", "cecilia", "manon", "_giovanni_", "mateo", "javier", "ambroos"],
+                //"Europe/Copenhagen": [],
+                "Europe/Athens": ["dimitra", "vassilis"],
+                "Asia/Singapore": ["vicente"],
+            }
+            for (var tz in tzPeople) {
+                tzPeople[tz] = tzPeople[tz].sort();
+            }
+        </script>
     </head>
-    <body style="display:flex; justify-content: center;">
-        <div id="mapid" style="flex-grow: 1;"></div>
+    <body style="display:flex; justify-content: center; flex-direction: column; flex-grow: 1; min-height: 97vh;">
+        <div id="tabs" style="display:flex; flex-grow: 1; flex-direction: column;">
+            <ul>
+                <li><a href="#map">Map</a></li>
+                <li><a href="#timezone">Timezones</a></li>
+                <li><a href="#people">People</a></li>
+            </ul>
+            <div id="map" style="flex-grow: 1; display: flex;"></div>
+            <div id="timezone" style="flex-grow: 1;"></div>
+            <div id="people" style="flex-grow: 1;"></div>    
+        </div>
         <!-- See http://joergdietrich.github.io/Leaflet.Terminator/  -->
         <script src="https://unpkg.com/@joergdietrich/leaflet.terminator@1.0.0/L.Terminator.js"></script>
 
@@ -29,7 +62,7 @@
         <script src="https://momentjs.com/downloads/moment-timezone-with-data-10-year-range.min.js"></script>
 
         <script>
-            var map = L.map('mapid').setView([30,-0], 3);
+            var map = L.map('map').setView([30,-10], 3);
             //L.tileLayer('https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png');
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -41,22 +74,6 @@
         </script>
 
         <script>
-            // TODO: move data into separate file
-            // TODO: figure out automatic updates (script to poll gcal api?)
-            // TODO: probably make each person into an object, with 'tz' and maybe also 'subteam' attributes (for filtering by subteam w/ checkboxes)
-            const tzPeople = {
-                "America/Los_Angeles": ["walterw", "brian", "olivers"],
-                "America/Chicago": ["liam", "charlie"],
-                "America/New_York": ["chrisd", "bobby", "__frank__"],
-                "Europe/Madrid": ["miro", "lucasl", "cosimo", "cecilia", "manon", "_giovanni_", "mateo", "javier", "ambroos"],
-//                "Europe/Copenhagen": [],
-                "Europe/Athens": ["dimitra", "vassilis"],
-                "Asia/Singapore": ["vicente"],
-            }
-            for (var tz in tzPeople) {
-                tzPeople[tz] = tzPeople[tz].sort();
-            }
-
             var ourPopups = [];
             var lastDrawnMinute = -1;
 
@@ -78,9 +95,38 @@
                         .setContent(`<div style="text-align:center"><b><div style="font-size: 200%">${local}</div><div style="margin-bottom:0.75em;">${abbr}</div></b>${p.join("<br>")}</div>`));
                 }
                 ourPopups.forEach(e => e.addTo(map));
+
+                // Calculate the per-person view
+                var peopleTz = {};
+                for (var tz in tzPeople) {
+                    tzPeople[tz].forEach(p=>peopleTz[p]=tz);
+                }
+                var pHtml = `<table>`;
+                Object.keys(peopleTz).sort().forEach(p => {
+                    var tz = peopleTz[p];
+                    const local = now.tz(tz).format('HH:mm');
+                    const abbr = moment.tz.zone(tz).abbr(now);
+                    pHtml += `<tr><th scope="row" align="left">${p}</th><td>${local} (${abbr})</td></tr>`;
+                });
+                pHtml += `</table>`;
+                $("#people").html(pHtml);
+
+                // Calculate the per-timezone view.  In this view, always show a placeholder for UTC time.
+                var userTz = moment.tz.guess();
+                tzPlusUtc = _.union(Object.keys(tzPeople),['UTC', userTz]);
+                var tzHtml = `<table>`;
+                // Present timezones reverse-sorted by offset from UTC (approx matches map)
+                // TODO: it would be cool to highlight your local TZ, and/or always insert local TZ if it doesn't appear already.
+                tzPlusUtc.sort((a,b)=>moment.tz.zone(b).utcOffset(now) - moment.tz.zone(a).utcOffset(now)).forEach(tz=>{
+                    const local = now.tz(tz).format('HH:mm');
+                    const abbr = moment.tz.zone(tz).abbr(now);
+                    tzHtml += `<tr ${tz == userTz ? 'bgcolor="#AFEEEE"' : ""}><th scope="row"><div style="font-size:200%">${local}</div>${abbr}</th><td>${tz in tzPeople ? tzPeople[tz].join(", ") : ""}</td></tr>`;
+                });
+                tzHtml += `</table>`;
+                $("#timezone").html(tzHtml);
+
                 lastDrawnMinute = now.minute();
             }
-            // TODO: times in popups should autoupdate too
             var tzCoords = {};
 
             // for each IANA timezone name (e.g. 'Europe/Athens'), yields the lat/long of its namesake city.  Generated by https://w.wiki/HHd
@@ -93,6 +139,14 @@
                     maybeDrawPopups();
                     setInterval(maybeDrawPopups, 500);
                 });
+        </script>
+    
+        <script>
+            // Need to invalidate Leaflet's state after tabs have messed with the DOM
+            $("#tabs").tabs({
+                activate: function(event,ui) { map.invalidateSize() },
+            });
+            map.invalidateSize();
         </script>
     </body>
 </html>
