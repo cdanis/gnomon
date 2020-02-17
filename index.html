@@ -118,7 +118,6 @@
                 tzPlusUtc = _.union(Object.keys(tzPeople),['UTC', userTz]);
                 var tzHtml = `<table>`;
                 // Present timezones reverse-sorted by offset from UTC (approx matches map)
-                // TODO: it would be cool to highlight your local TZ, and/or always insert local TZ if it doesn't appear already.
                 tzPlusUtc.sort((a,b)=>moment.tz.zone(b).utcOffset(now) - moment.tz.zone(a).utcOffset(now)).forEach(tz=>{
                     const local = now.tz(tz).format('HH:mm');
                     const abbr = moment.tz.zone(tz).abbr(now);
