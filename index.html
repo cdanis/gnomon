@@ -78,7 +78,7 @@
             var ourPopups = [];
             var lastDrawnMinute = -1;
 
-            function maybeDrawPopups() {
+            function maybeRedrawState() {
                 var now = moment();
                 if (lastDrawnMinute == now.minute())
                     return;
@@ -91,11 +91,12 @@
                     console.log(`${tz}: ${tzCoords[tz]}`);
                     const local = now.tz(tz).format('HH:mm');
                     const abbr = moment.tz.zone(tz).abbr(now);
-                    ourPopups.push(L.popup({autoClose: false, closeOnClick: false})
+                    ourPopups.push(L.popup({autoClose: false, closeOnClick: false, autoPan: false})
                         .setLatLng(tzCoords[tz])
                         .setContent(`<div style="text-align:center"><b><div style="font-size: 200%">${local}</div><div style="margin-bottom:0.75em;">${abbr}</div></b>${p.join("<br>")}</div>`));
                 }
                 ourPopups.forEach(e => e.addTo(map));
+                ourPopups.forEach(p => $(p._container).click(p, e=>e.data.bringToFront()));
 
                 // Calculate the per-person view
                 var peopleTz = {};
@@ -137,8 +138,8 @@
                     res.map(tz => { tzCoords[tz.tzLabel] = [tz.lat, tz.long]; });
                     // hack
                     tzCoords['America/Chicago'] = [32.779167, -96.808889]; // Dallas
-                    maybeDrawPopups();
-                    setInterval(maybeDrawPopups, 500);
+                    maybeRedrawState();
+                    setInterval(maybeRedrawState, 500);
                 });
         </script>
     
