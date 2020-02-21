@@ -1,0 +1,8 @@
+{
+    "America/Los_Angeles": ["walterw", "brian", "olivers"],
+    "America/Chicago": ["liam", "charlie"],
+    "America/New_York": ["chrisd", "bobby", "__frank__"],
+    "Europe/Madrid": ["miro", "lucasl", "cosimo", "cecilia", "manon", "_giovanni_", "mateo", "javier", "ambroos"],
+    "Europe/Athens": ["dimitra", "thodoris"],
+    "Asia/Singapore": ["vicente"]
+}

@@ -19,28 +19,12 @@
             .leaflet-popup-tip {
                 visibility: hidden;
             }
+            tr:nth-child(even) {background: #CCC}
         </style>
         <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
         <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
         <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
         <script src="https://underscorejs.org/underscore-min.js"></script>
-        <script>
-            // TODO: move data into separate file
-            // TODO: figure out automatic updates (script to poll gcal api?)
-            // TODO: probably make each person into an object, with 'tz' and maybe also 'subteam' attributes (for filtering by subteam w/ checkboxes)
-            const tzPeople = {
-                "America/Los_Angeles": ["walterw", "brian", "olivers"],
-                "America/Chicago": ["liam", "charlie"],
-                "America/New_York": ["chrisd", "bobby", "__frank__"],
-                "Europe/Madrid": ["miro", "lucasl", "cosimo", "cecilia", "manon", "_giovanni_", "mateo", "javier", "ambroos"],
-                //"Europe/Copenhagen": [],
-                "Europe/Athens": ["dimitra", "thodoris"],
-                "Asia/Singapore": ["vicente"],
-            }
-            for (var tz in tzPeople) {
-                tzPeople[tz] = tzPeople[tz].sort();
-            }
-        </script>
     </head>
     <body style="display:flex; justify-content: center; flex-direction: column; flex-grow: 1; min-height: 97vh;">
         <div id="tabs" style="display:flex; flex-grow: 1; flex-direction: column;">
@@ -83,60 +67,92 @@
                 if (lastDrawnMinute == now.minute())
                     return;
                 
+                var offsetPeople = {};  // UTC offset hours as key. Must calculate here, as UTC offset depends on current time!
+                var offsetExampleTz = {};
+
+                for (var tz in tzPeople) {
+                    const offsetHrs = now.tz(tz).utcOffset()/60;
+                    if (offsetHrs in offsetPeople) {
+                        offsetPeople[offsetHrs] = Array.prototype.concat(offsetPeople[offsetHrs], tzPeople[tz]);
+                    } else {
+                        offsetPeople[offsetHrs] = tzPeople[tz];
+                    }
+                    if (!(offsetHrs in offsetExampleTz)) {
+                        offsetExampleTz[offsetHrs] = tz;
+                    }
+                }
+                for (var off in offsetPeople) {
+                    offsetPeople[off] = offsetPeople[off].sort();
+                }
+
+                // Delete and re-draw map popups.  One popup per UTC offset.
                 ourPopups.forEach(e => e.remove());
                 ourPopups = [];
 
-                for (var tz in tzPeople) {
-                    const p = tzPeople[tz];
-                    console.log(`${tz}: ${tzCoords[tz]}`);
+                for (var off in offsetPeople) {
+                    const p = offsetPeople[off];
+                    // Get arbitrary timezone, shouldn't matter which.
+                    const tz = peopleTz[p[0]];
                     const local = now.tz(tz).format('HH:mm');
-                    const abbr = moment.tz.zone(tz).abbr(now);
+                    // cycle over all TZs in this offset, grab all abbrs, and union-ize them.
+                    const abbrs = _.union(p.map(e => moment.tz.zone(peopleTz[e]).abbr(now)));
+                    const longitude = 180*off/12;
+                    const latitude = (Math.abs(longitude)%2)*-20+30;
+                    console.log(`${off}: ${latitude},${longitude}: ${abbrs.join(',')}: ${p.join(',')}`)
                     ourPopups.push(L.popup({autoClose: false, closeOnClick: false, autoPan: false})
-                        .setLatLng(tzCoords[tz])
-                        .setContent(`<div style="text-align:center"><b><div style="font-size: 200%">${local}</div><div style="margin-bottom:0.75em;">${abbr}</div></b>${p.join("<br>")}</div>`));
+                        .setLatLng([latitude,longitude])
+                        .setContent(`<div style="text-align:center"><b><div style="font-size: 200%">${local}</div><div style="margin-bottom:0.75em;">${abbrs.join(', ')}</div></b>${p.join("<br>")}</div>`));
                 }
                 ourPopups.forEach(e => e.addTo(map));
                 ourPopups.forEach(p => $(p._container).click(p, e=>e.data.bringToFront()));
 
-                // Calculate the per-person view
-                var peopleTz = {};
-                for (var tz in tzPeople) {
-                    tzPeople[tz].forEach(p=>peopleTz[p]=tz);
-                }
+                // Render the per-person view
                 var pHtml = `<table>`;
                 Object.keys(peopleTz).sort().forEach(p => {
                     var tz = peopleTz[p];
                     const local = now.tz(tz).format('HH:mm');
                     const abbr = moment.tz.zone(tz).abbr(now);
-                    pHtml += `<tr><th scope="row" align="left">${p}</th><td>${local} (${abbr})</td></tr>`;
+                    pHtml += `<tr><th scope="row" align="left">${p}</th><td>${local} <small>(${abbr}: ${tz})</small></td></tr>`;
                 });
                 pHtml += `</table>`;
                 $("#people").html(pHtml);
 
-                // Calculate the per-timezone view.  In this view, always show a placeholder for UTC time.
-                var userTz = moment.tz.guess();
+                // Calculate the per-UTC-offset timezone view.  In this view, always show a placeholder for UTC time.
+                const userTz = moment.tz.guess();
+                const userOffset = (moment.tz.zone(userTz).utcOffset(now)/-60).toString();
+                offsetsPlusUtc = _.union(Object.keys(offsetPeople), ['0', userOffset.toString()]);
+                if (!(0 in offsetExampleTz)) {
+                    offsetExampleTz[0] = 'UTC';
+                }
+                if (!(userOffset in offsetExampleTz)) {
+                    offsetExampleTz[userOffset] = userTz;
+                }
                 tzPlusUtc = _.union(Object.keys(tzPeople),['UTC', userTz]);
                 var tzHtml = `<table>`;
-                // Present timezones reverse-sorted by offset from UTC (approx matches map)
-                tzPlusUtc.sort((a,b)=>moment.tz.zone(b).utcOffset(now) - moment.tz.zone(a).utcOffset(now)).forEach(tz=>{
+                // Present timezones reverse-sorted by offset from UTC (matches map, makes sense)
+                offsetsPlusUtc.sort((a,b)=>b-a).forEach(off=>{
+                    const p = offsetPeople[off] || [];
+                    const tz = offsetExampleTz[off];
                     const local = now.tz(tz).format('HH:mm');
-                    const abbr = moment.tz.zone(tz).abbr(now);
-                    tzHtml += `<tr ${tz == userTz ? 'bgcolor="#AFEEEE"' : ""}><th scope="row"><div style="font-size:200%">${local}</div>${abbr}</th><td>${tz in tzPeople ? tzPeople[tz].join(", ") : ""}</td></tr>`;
+                    const abbrs = p==[]? [tz.abbr(now)] : _.union(p.map(e => moment.tz.zone(peopleTz[e]).abbr(now)));
+                    tzHtml += `<tr ${off == userOffset ? 'bgcolor="#AFEEEE"' : ""}><th scope="row"><div style="font-size:200%">${local}</div>${abbrs.join(',')}</th><td>${p.join(", ")}</td></tr>`;
                 });
                 tzHtml += `</table>`;
                 $("#timezone").html(tzHtml);
 
                 lastDrawnMinute = now.minute();
             }
-            var tzCoords = {};
-
-            // for each IANA timezone name (e.g. 'Europe/Athens'), yields the lat/long of its namesake city.  Generated by https://w.wiki/HHd
-            fetch('wikidata-timezone-to-coords.json')
+            var tzPeople = {};
+            var peopleTz = {};
+            // TODO: probably make each person into an object, with 'tz' and maybe also 'subteam' attributes (for filtering by subteam w/ checkboxes)
+            fetch('tzpeople.json')
                 .then(res => res.json())
                 .then(res => {
-                    res.map(tz => { tzCoords[tz.tzLabel] = [tz.lat, tz.long]; });
-                    // hack
-                    tzCoords['America/Chicago'] = [32.779167, -96.808889]; // Dallas
+                    tzPeople = res;
+                    for (var tz in tzPeople) {
+                        tzPeople[tz] = tzPeople[tz].sort();
+                        tzPeople[tz].forEach(p=>peopleTz[p]=tz);
+                    }
                     maybeRedrawState();
                     setInterval(maybeRedrawState, 500);
                 });
