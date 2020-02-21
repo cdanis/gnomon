@@ -130,7 +130,7 @@
                 tzPlusUtc = _.union(Object.keys(tzPeople),['UTC', userTz]);
                 var tzHtml = `<table>`;
                 // Present timezones reverse-sorted by offset from UTC (matches map, makes sense)
-                offsetsPlusUtc.sort((a,b)=>b-a).forEach(off=>{
+                offsetsPlusUtc.sort((a,b)=>a-b).forEach(off=>{
                     const p = offsetPeople[off] || [];
                     const tz = offsetExampleTz[off];
                     const local = now.tz(tz).format('HH:mm');
