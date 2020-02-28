@@ -136,7 +136,7 @@
                     const tz = offsetExampleTz[off];
                     const local = now.tz(tz).format('HH:mm');
                     const abbrs = p==[]? [tz.abbr(now)] : _.union(p.map(e => moment.tz.zone(peopleTz[e]).abbr(now)));
-                    tzHtml += `<tr ${off == userOffset ? 'bgcolor="#AFEEEE"' : ""}><th scope="row"><div style="font-size:200%">${local}</div>${abbrs.join(',')}</th><td>${p.join(", ")}</td></tr>`;
+                    tzHtml += `<tr ${off == userOffset ? 'style="background-color: #AFEEEE"' : ""}><th scope="row"><div style="font-size:200%">${local}</div>${abbrs.join(',')}</th><td>${p.join(", ")}</td></tr>`;
                 });
                 tzHtml += `</table>`;
                 $("#timezone").html(tzHtml);
