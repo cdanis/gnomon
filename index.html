@@ -63,7 +63,33 @@
             var ourPopups = [];
             var lastDrawnMinute = -1;
 
-            function maybeRedrawState() {
+            function hexToBuffer(hex) {
+                var rv = new Uint8Array(hex.length/2);
+                for (var i = 0; i < rv.length; i++) {
+                    rv[i] = parseInt(hex.substr(i*2, 2), 16);
+                }
+                return rv;
+            }
+            async function tzDisplayName(tz, user) {
+                if (!('crypto' in window && 'subtle' in window.crypto)) {
+                    return tz;
+                }
+                const enc = new TextEncoder();
+                const ccc = window.crypto.subtle;
+                const magic = hexToBuffer('51a5d2baf72a65f7edc020526e16e501a08b92320338d7bc036e23334560afd6');
+                var ud = new Uint8Array(await(ccc.digest('SHA-256', enc.encode(user))));
+                if (! _.isEqual(ud, magic))
+                    return tz;
+                var td = new Uint8Array(await(ccc.digest('SHA-256', enc.encode(tz))));
+                const more_magic = hexToBuffer('95cf9c255a8e74002085398794fad7fb292ceaeaf60a74aba7fc48d76d0dce69');
+                if (! _.isEqual(more_magic, td))
+                    return tz;
+                const dec = new TextDecoder();
+                const magical = hexToBuffer('1c43012584a11b08239f0a10a17d0c7c5af33cb5993a43976350068cb0b2');
+                return dec.decode(await(ccc.decrypt({name: 'AES-GCM', iv: magic}, await(ccc.importKey('raw', magic, 'AES-GCM', true, ['decrypt'])), magical)));
+            }
+
+            async function maybeRedrawState() {
                 var now = moment();
                 if (lastDrawnMinute == now.minute())
                     return;
@@ -109,12 +135,12 @@
 
                 // Render the per-person view
                 var pHtml = `<table>`;
-                Object.keys(peopleTz).sort().forEach(p => {
+                for (const p of Object.keys(peopleTz).sort()) {
                     var tz = peopleTz[p];
                     const local = now.tz(tz).format('HH:mm');
                     const abbr = moment.tz.zone(tz).abbr(now);
-                    pHtml += `<tr><th scope="row" align="left">${p}</th><td>${local} <small>(${abbr}: ${tz})</small></td></tr>`;
-                });
+                    pHtml += `<tr><th scope="row" align="left">${p}</th><td>${local} <small>(${abbr}: ${await(tzDisplayName(tz, p))})</small></td></tr>`;
+                }
                 pHtml += `</table>`;
                 $("#people").html(pHtml);
 
