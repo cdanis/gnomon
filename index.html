@@ -189,7 +189,11 @@
         <script>
             // Need to invalidate Leaflet's state after tabs have messed with the DOM
             $("#tabs").tabs({
-                activate: function(event,ui) { map.invalidateSize() },
+                activate: function(event,ui) {
+                    map.invalidateSize();
+                    if (event.toElement.hash == '#map')
+                        lastDrawnMinute = -1;
+                },
             });
             map.invalidateSize();
         </script>
