@@ -191,8 +191,9 @@
             $("#tabs").tabs({
                 activate: function(event,ui) {
                     map.invalidateSize();
-                    if (event.toElement.hash == '#map')
-                        lastDrawnMinute = -1;
+                    if (event.toElement.hash == '#map') {
+                        lastDrawnMinute = -1;  // kludge https://github.com/cdanis/gnomon/issues/6
+                    }
                 },
             });
             map.invalidateSize();
