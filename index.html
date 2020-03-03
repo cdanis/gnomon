@@ -126,7 +126,7 @@
                     const abbrs = _.union(p.map(e => moment.tz.zone(peopleTz[e]).abbr(now)));
                     const longitude = 180*off/12;
                     const latitude = (Math.abs(longitude)%2)*-20+30;
-                    console.log(`${off}: ${latitude},${longitude}: ${abbrs.join(',')}: ${p.join(',')}`)
+                    //console.log(`${off}: ${latitude},${longitude}: ${abbrs.join(',')}: ${p.join(',')}`)
                     ourPopups.push(L.popup({autoClose: false, closeOnClick: false, autoPan: false})
                         .setLatLng([latitude,longitude])
                         .setContent(`<div style="text-align:center"><b><div style="font-size: 200%">${local}</div><div style="margin-bottom:0.75em;">${abbrs.join(', ')}</div></b>${p.join("<br>")}</div>`));
