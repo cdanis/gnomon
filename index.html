@@ -168,7 +168,7 @@
                 tzHtml += `</table>`;
                 $("#timezone").html(tzHtml);
 
-                lastDrawnMinute = now.minute();
+                lastDrawnMinute = now.tz('UTC').minute();
             }
             var tzPeople = {};
             var peopleTz = {};
