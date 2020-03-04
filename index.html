@@ -62,7 +62,7 @@
 
         <script>
             var ourPopups = [];
-            var lastDrawnMinute = -1;
+            var lastDrawnMinute = -1;  // always UTC; fractional timezones are a thing
 
             function hexToBuffer(hex) {
                 var rv = new Uint8Array(hex.length/2);
@@ -92,7 +92,7 @@
 
             async function maybeRedrawState() {
                 var now = moment();
-                if (lastDrawnMinute == now.minute())
+                if (lastDrawnMinute == now.tz('UTC').minute())
                     return;
                 
                 var offsetPeople = {};  // UTC offset hours as key. Must calculate here, as UTC offset depends on current time!
