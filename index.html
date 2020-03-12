@@ -127,7 +127,9 @@
                     const local = now.tz(tz).format('HH:mm');
                     // cycle over all TZs in this offset, grab all abbrs, and union-ize them.
                     const abbrs = _.union(p.map(e => moment.tz.zone(peopleTz[e]).abbr(now)));
-                    const longitude = 180*off/12;
+                    // Correct our pseudo-longitude scheme for summer time differences: always use the western-most offset.
+                    const nominalOff = _.max(moment.tz.zone(tz).offsets);
+                    const longitude = 180*nominalOff/12/-60;
                     const latitude = (Math.abs(longitude)%2)*-20+30;
                     //console.log(`${off}: ${latitude},${longitude}: ${abbrs.join(',')}: ${p.join(',')}`)
                     ourPopups.push(L.popup({autoClose: false, closeOnClick: false, autoPan: false})
