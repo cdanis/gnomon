@@ -37,7 +37,7 @@
             </ul>
             <div id="map" style="flex-grow: 1; display: flex;"></div>
             <div id="timezone" style="flex-grow: 1;"></div>
-            <div id="people" style="flex-grow: 1;"></div>    
+            <div id="people" style="flex-grow: 1;"></div>
         </div>
         <!-- See http://joergdietrich.github.io/Leaflet.Terminator/  -->
         <script src="https://unpkg.com/@joergdietrich/leaflet.terminator@1.0.0/L.Terminator.js"></script>
@@ -94,7 +94,7 @@
                 var now = moment();
                 if (lastDrawnMinute == now.tz('UTC').minute())
                     return;
-                
+
                 var offsetPeople = {};  // UTC offset hours as key. Must calculate here, as UTC offset depends on current time!
                 var offsetExampleTz = {};
 
@@ -185,7 +185,7 @@
                     setInterval(maybeRedrawState, 500);
                 });
         </script>
-    
+
         <script>
             // Need to invalidate Leaflet's state after tabs have messed with the DOM
             $("#tabs").tabs({
