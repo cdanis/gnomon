@@ -92,6 +92,9 @@
 
             async function maybeRedrawState() {
                 var now = moment();
+                if ('pseudoMoment' in window) {  // hack for debugging
+                    now = window.pseudoMoment;
+                }
                 if (lastDrawnMinute == now.tz('UTC').minute())
                     return;
 
