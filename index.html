@@ -62,7 +62,7 @@
 
         <script>
             var ourPopups = [];
-            var lastDrawnMinute = -1;  // always UTC; fractional timezones are a thing
+            var lastDrawnMinute = null;  // a Moment with minute granularity
 
             function hexToBuffer(hex) {
                 var rv = new Uint8Array(hex.length/2);
@@ -95,7 +95,7 @@
                 if ('pseudoMoment' in window) {  // hack for debugging
                     now = window.pseudoMoment;
                 }
-                if (lastDrawnMinute == now.tz('UTC').minute())
+                if (now.tz('UTC').clone().startOf('minute').isSame(lastDrawnMinute))
                     return;
 
                 var offsetPeople = {};  // UTC offset hours as key. Must calculate here, as UTC offset depends on current time!
@@ -131,7 +131,7 @@
                     const nominalOff = _.max(_.flatten(p.map(e => moment.tz.zone(peopleTz[e]).offsets)));
                     const longitude = 180*nominalOff/12/-60;
                     const latitude = (Math.abs(longitude)%2)*-20+30;
-                    //console.log(`${off}: ${latitude},${longitude}: ${abbrs.join(',')}: ${p.join(',')}`)
+                    console.log(`${off}: ${latitude},${longitude}: ${abbrs.join(',')}: ${p.join(',')}`)
                     ourPopups.push(L.popup({autoClose: false, closeOnClick: false, autoPan: false})
                         .setLatLng([latitude,longitude])
                         .setContent(`<div style="text-align:center"><b><div style="font-size: 200%">${local}</div><div style="margin-bottom:0.75em;">${abbrs.join(', ')}</div></b>${p.join("<br>")}</div>`));
@@ -173,7 +173,7 @@
                 tzHtml += `</table>`;
                 $("#timezone").html(tzHtml);
 
-                lastDrawnMinute = now.tz('UTC').minute();
+                lastDrawnMinute = now.tz('UTC').startOf('minute');
             }
             var tzPeople = {};
             var peopleTz = {};
