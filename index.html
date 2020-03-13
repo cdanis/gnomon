@@ -57,7 +57,7 @@
             //L.timezones.addTo(map);
             var t = L.terminator();
             t.addTo(map);
-            setInterval(function(){var t2 = L.terminator(); t.setLatLngs(t2.getLatLngs()); t.redraw();}, 10000);
+            setInterval(function(){t.setTime(window.pseudoMoment)}, 10000);
         </script>
 
         <script>
